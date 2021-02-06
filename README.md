@@ -72,7 +72,7 @@ val anotherDescription = Description("A fancy description")
 AnotherProductRepository.findByCode(anotherDescription)
 ```
 
-As desired, the compiler will diligently warn us that we are doing it wrong:
+As desired, the compiler diligently warns us that we are doing it wrong:
 
 ```shell
 [error] /Users/rcardin/Documents/value-types/src/main/scala/ValuesTypes.scala:33:39: type mismatch;
@@ -82,4 +82,32 @@ As desired, the compiler will diligently warn us that we are doing it wrong:
 [error]                                       ^
 ```
 
+However, we can still create a `BarCode` using a `String` representing a description:
+
+```scala
+val aFakeBarCode: BarCode = BarCode("I am a bar-code ;)")
+```
+
+To overcome this issue we must revamp the _smart constructor_ design pattern. Though the description
+of the pattern is behind the scope of this article, the smart constructor pattern hides to developers
+the main constructor of the class, and adds a factory method that performs any needed validation on
+input information. In its final form, smart constructor pattern for the `BarCode` type is the 
+following:
+
+```scala
+sealed abstract class BarCodeWithSmartConstructor(code: String)
+object BarCodeWithSmartConstructor {
+  def mkBarCode(code: String): Either[String, BarCodeWithSmartConstructor] =
+    Either.cond(
+      code.matches("d-dddddd-dddddd"),
+      new BarCodeWithSmartConstructor(code) {},
+      s"The given code $code has not the right format"
+    )
+}
+
+val theBarCode: Either[String, BarCodeWithSmartConstructor] =
+  BarCodeWithSmartConstructor.mkBarCode("8-000137-001620")
+```
+
+Awesome! We reach our main goal. Now, we have fewer problems to worry about...or not? 
 

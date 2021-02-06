@@ -31,4 +31,19 @@ object ValuesTypes {
 
   val anotherDescription = Description("A fancy description")
   // AnotherProductRepository.findByCode(anotherDescription) Won't compile!
+
+  val aFakeBarCode: BarCode = BarCode("I am a bar-code ;)") // WTF!
+
+  sealed abstract class BarCodeWithSmartConstructor(code: String)
+  object BarCodeWithSmartConstructor {
+    def mkBarCode(code: String): Either[String, BarCodeWithSmartConstructor] =
+      Either.cond(
+        code.matches("d-dddddd-dddddd"),
+        new BarCodeWithSmartConstructor(code) {},
+        s"The given code $code has not the right format"
+      )
+  }
+
+  val theBarCode: Either[String, BarCodeWithSmartConstructor] =
+    BarCodeWithSmartConstructor.mkBarCode("8-000137-001620")
 }
