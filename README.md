@@ -48,5 +48,38 @@ soon as possible. Fail fast, they said. Hence, to help the compiler in its work,
 dedicated types, both to the `code`, and to the `description`:
 
 ```scala
-
+case class BarCode(code: String)
+case class Description(txt: String)
 ```
+
+The new types, `BarCode` and `Description`, are nothing more than wrappers around strings. However,
+they allow us to refine the functions of our repository to avoid the previous information mismatch:
+
+```scala
+trait AnotherProductRepository {
+  def findByCode(barCode: BarCode): Option[Product] =
+    Some(Product(barCode.code, "Some description"))
+  def findByDescription(description: Description): List[Product] =
+    List(Product("some-code", description.txt))
+}
+```
+
+As we can see, it is not possible anymore to search a product by code, passing accidentally a 
+description. Indeed, we can try to pass a `Description` instead of a `BarCode` instead:
+
+```scala
+val anotherDescription = Description("A fancy description")
+AnotherProductRepository.findByCode(anotherDescription)
+```
+
+As desired, the compiler will diligently warn us that we are doing it wrong:
+
+```shell
+[error] /Users/rcardin/Documents/value-types/src/main/scala/ValuesTypes.scala:33:39: type mismatch;
+[error]  found   : in.rcard.value.ValuesTypes.Description
+[error]  required: in.rcard.value.ValuesTypes.BarCode
+[error]   AnotherProductRepository.findByCode(anotherDescription)
+[error]                                       ^
+```
+
+

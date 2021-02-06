@@ -17,4 +17,18 @@ object ValuesTypes {
 
   ProductRepository.findByCode(aDescription)
   ProductRepository.findByDescription(aCode)
+
+  case class BarCode(code: String)
+  case class Description(txt: String)
+
+  trait AnotherProductRepository {
+    def findByCode(barCode: BarCode): Option[Product] =
+      Some(Product(barCode.code, "Some description"))
+    def findByDescription(description: Description): List[Product] =
+      List(Product("some-code", description.txt))
+  }
+  object AnotherProductRepository extends AnotherProductRepository
+
+  val anotherDescription = Description("A fancy description")
+  // AnotherProductRepository.findByCode(anotherDescription) Won't compile!
 }
