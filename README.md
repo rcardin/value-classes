@@ -44,7 +44,7 @@ The compiler cannot warn us of our errors, because we are representing both info
 and the `description`, using simple `Strings`. This fact can lead to subtle bugs, which are very 
 difficult to intercept also at runtime.
 
-## 2. Self-made Value Types
+## 2. First Try of Solution
 
 However, we are smart developers, and we want the compiler helping us to identify such errors as
 soon as possible. Fail fast, they said. Hence, to help the compiler in its work, we define two 
@@ -115,7 +115,7 @@ val theBarCode: Either[String, BarCodeWithSmartConstructor] =
 
 Awesome! We reach our main goal. Now, we have fewer problems to worry about...or not? 
 
-## 3. Idiomatic Value Types: Value Classes
+## 3. An Idiomatic Solution: Value Classes
 
 The above approach resolves the problems we already mentioned, but it adds many others. In fact,
 since we are using a regular type to wrap `String`s, the compiler must instantiate a new instance of
@@ -160,6 +160,25 @@ following use cases that need an extra memory allocation:
 Due to these limitations, the Scala community searched for a better solution. Ladies and gentlemen,
 please welcome the [NewType](https://github.com/estatico/scala-newtype) library.
 
-## 4. NewType 
+## 4. The NewType Library
+
+The NewType library allow us to create new types without the overhead of extra runtime allocations,
+avoiding in this way all the pitfalls of using Scala values classes:
+
+```sbt
+libraryDependencies += "io.estatico" %% "newtype" % "0.4.4"
+```
+
+It uses the experimental feature of Scala macros. So, it is necessary to enable such a feature at 
+compile time, using the `-Ymacro-annotations`. In details, the library defines the `@newtype` 
+annotation macro:
+
+```scala
+import io.estatico.newtype.macros.newtype
+@newtype case class BarCode(code: String)
+```
+
+Since the macro expansion generates during compile time a new `type` definition, and an associated 
+companion object, we must define the new type inside an `object` or a `package object`.
 
 

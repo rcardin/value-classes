@@ -1,5 +1,7 @@
 package in.rcard.value
 
+import io.estatico.newtype.macros.newtype
+
 object ValuesClasses {
 
   case class Product(code: String, description: String)
@@ -49,5 +51,11 @@ object ValuesClasses {
 
   case class BarCodeValueClass(val code: String) extends AnyVal {
     def countryCode: Char = code.charAt(0)
+  }
+
+  object NewType {
+
+    @newtype case class BarCode(code: String)
+
   }
 }
