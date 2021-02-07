@@ -179,6 +179,31 @@ import io.estatico.newtype.macros.newtype
 ```
 
 Since the macro expansion generates during compile time a new `type` definition, and an associated 
-companion object, we must define the new type inside an `object` or a `package object`.
+companion object, we must define the new type inside an `object` or a `package object`. Moreover, 
+the library expands the class marked with the `@newtype` annotation with its underlying value at 
+runtime. So, it's not possible for a `@newtype` class to extend any other type.
+
+Despite these limitations, the NewType library works like a charm, and interacts smoothly with IDEs.
+
+What about smart constructor? If we choose to use a `case class`, the library will generate for us
+the `apply` method in the companion object. If we want to avoid the access to the `apply` 
+method, we can use a `class` instead, and create our smart constructor in a dedicated companion 
+object:
+
+```scala
+@newtype class BarCodeWithCompanion(code: String)
+
+object BarCodeWithCompanion {
+  def mkBarCode(code: String): Either[String, BarCodeWithCompanion] =
+    Either.cond(
+      code.matches("d-dddddd-dddddd"),
+      code.coerce,
+      s"The given code $code has not the right format")
+}
+```
+
+
+
+
 
 

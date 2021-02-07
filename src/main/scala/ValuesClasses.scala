@@ -1,6 +1,7 @@
 package in.rcard.value
 
 import io.estatico.newtype.macros.newtype
+import io.estatico.newtype.ops.toCoercibleIdOps
 
 object ValuesClasses {
 
@@ -57,5 +58,14 @@ object ValuesClasses {
 
     @newtype case class BarCode(code: String)
 
+    @newtype class BarCodeWithCompanion(code: String)
+
+    object BarCodeWithCompanion {
+      def mkBarCode(code: String): Either[String, BarCodeWithCompanion] =
+        Either.cond(
+          code.matches("d-dddddd-dddddd"),
+          code.coerce,
+          s"The given code $code has not the right format")
+    }
   }
 }
