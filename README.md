@@ -3,7 +3,7 @@ signature of a function. Hence, when we use functional programming we prefer to 
 to represent simple information such as an identifier, a description, or a currency. Ladies and 
 gentlemen, please welcome the value types.
 
-## 1. Idiomatic Value Types in Scala
+## 1. The Problem
 
 First, let's define an example to work with. Imagine we have an e-commerce business, and that we 
 model a product to sell using the following representation:
@@ -27,11 +27,12 @@ trait ProductRepository {
 For sake of completeness, the search by `description` performs some smart search based on some 
 distance measure between strings.
 
-Now, the problem is that there is nothing in our program that block us to use a description in the 
+Now, the problem is that there is nothing in our program that blocks us to use a description in the 
 search by code, or a code in the search by description:
 
 ```scala
-import in.rcard.value.ValuesTypes.ProductRepository
+import in.rcard.value.ValuesClasses.ProductRepository
+
 val aCode = "8-000137-001620"
 val aDescription = "Multivitamin and minerals"
 
@@ -43,6 +44,8 @@ The compiler cannot warn us of our errors, because we are representing both info
 and the `description`, using simple `Strings`. This fact can lead to subtle bugs, which are very 
 difficult to intercept also at runtime.
 
+## 2. Self-made Value Types
+
 However, we are smart developers, and we want the compiler helping us to identify such errors as
 soon as possible. Fail fast, they said. Hence, to help the compiler in its work, we define two 
 dedicated types, both to the `code`, and to the `description`:
@@ -52,8 +55,9 @@ case class BarCode(code: String)
 case class Description(txt: String)
 ```
 
-The new types, `BarCode` and `Description`, are nothing more than wrappers around strings. However,
-they allow us to refine the functions of our repository to avoid the previous information mismatch:
+The new types, `BarCode` and `Description`, are nothing more than wrappers around strings. In 
+jargon, we call them _value types_. However, they allow us to refine the functions of our repository 
+to avoid the previous information mismatch:
 
 ```scala
 trait AnotherProductRepository {
@@ -110,4 +114,52 @@ val theBarCode: Either[String, BarCodeWithSmartConstructor] =
 ```
 
 Awesome! We reach our main goal. Now, we have fewer problems to worry about...or not? 
+
+## 3. Idiomatic Value Types: Value Classes
+
+The above approach resolves the problems we already mentioned, but it adds many others. In fact,
+since we are using a regular type to wrap `String`s, the compiler must instantiate a new instance of
+the types `BarCode` and `Description` more or less every time we use them. The over instantiation of
+object can lead to problem concerning performances, and the amount of consumed memory.
+
+Fortunately, Scala provides us an idiomatic way to implement value types: _Value classes_. Value
+classes avoid allocating runtime objects, avoiding the problems we just enumerated.
+
+A value class is a `class` (or a `case class`) that extends the type `AnyVal`, and declares only one 
+single public `val` attribute in the constructor. Moreover, a value class can declare `def`:
+
+```scala
+case class BarCodeValueClass(val code: String) extends AnyVal {
+  def countryCode: Char = code.charAt(0)
+}
+```
+
+Value classes can define `def`, but not `val` other than the constructor's attribute, cannot be 
+extended and cannot extend anything but _universal traits_. For sake of completeness, a universal 
+trait is a trait that extends the `Any` type, has only `def` as members and does no initialization.
+
+The main characteristic of a value class is that the compiler treats it as a regular type at compile
+time, but at runtime its representation is equal to the basic type it declares in the constructor.
+In our example, the `BarCodeValueClass` type is transformed as a simple `String` at runtime.
+
+Hence, due to the lack of runtime overhead, value classes are a valuable tool of Scala, and are use
+also in the SDK in the definition of extension methods for basic types such as `Int`, `Double`, 
+`Char`, and so forth.
+
+On the other hand, we must remember that the JVM does not support value classes directly. So, there
+are cases in which the runtime must perform an extra allocation of memory for the wrapper type, as
+in the case of our `BarCode` class.
+
+The Scala [documentation](https://docs.scala-lang.org/overviews/core/value-classes.html) reports the
+following use cases that need an extra memory allocation:
+
+* A value class is treated as another type.
+* A value class is assigned to an array.
+* Doing runtime type tests, such as pattern matching.
+
+Due to these limitations, the Scala community searched for a better solution. Ladies and gentlemen,
+please welcome the [NewType](https://github.com/estatico/scala-newtype) library.
+
+## 4. NewType 
+
 

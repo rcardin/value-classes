@@ -1,6 +1,6 @@
 package in.rcard.value
 
-object ValuesTypes {
+object ValuesClasses {
 
   case class Product(code: String, description: String)
 
@@ -46,4 +46,8 @@ object ValuesTypes {
 
   val theBarCode: Either[String, BarCodeWithSmartConstructor] =
     BarCodeWithSmartConstructor.mkBarCode("8-000137-001620")
+
+  case class BarCodeValueClass(val code: String) extends AnyVal {
+    def countryCode: Char = code.charAt(0)
+  }
 }
