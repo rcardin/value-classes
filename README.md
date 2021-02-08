@@ -185,7 +185,7 @@ runtime. So, it's not possible for a `@newtype` class to extend any other type.
 
 Despite these limitations, the NewType library works like a charm, and interacts smoothly with IDEs.
 
-What about smart constructor? If we choose to use a `case class`, the library will generate for us
+What about smart constructors? If we choose to use a `case class`, the library will generate for us
 the `apply` method in the companion object. If we want to avoid the access to the `apply` 
 method, we can use a `class` instead, and create our smart constructor in a dedicated companion 
 object:
@@ -200,6 +200,43 @@ object BarCodeWithCompanion {
       code.coerce,
       s"The given code $code has not the right format")
 }
+```
+
+### 4.1. Type Coercion
+
+Wait. What is the `code.coerce` statement? Unfortunately, using a `class` instead of a `case class`
+removes the chance to use the `apply` method both for other developers and for us :( So, we have to
+use type coercion.
+
+As we know, the Scala community considers type coercion a bad practice, because it requires a cast
+(via the `asInstanceOf` method). The NewType library tries to make this operation safer using a type
+class approach. 
+
+Hence, the compiler will let us use the `coerce` extension method if and only if an
+instance of the `Coercible[R, N]` type class exists in the scope for types `R` and `N`. However, 
+[it's proven](https://github.com/estatico/scala-newtype/issues/64) that the scope resolution of the 
+`Coercible` type class (a.k.a., the coercible trick) is an operations with a very high compile-time 
+cost, and should be avoided.
+
+### 4.2. Automatically Deriving Type Classes
+
+The NewType library offers a very nice mechanism to deriving type classes for our `newtype`. Taking
+an idea coming from Haskell (as the library itself), the companion objecy of a `newtype` contains 
+two methods, called `deriving` and `derivingK`.
+
+So, we can call the first method, `deriving`, if we want to derive an instance of a type class with 
+the type parameter that is not higher kinded. For example, we want to use our `BarCodeWithCompanion` 
+type together with the `cats.Eq` type class:
+
+```scala
+implicit val eq: Eq[BarCodeWithCompanion] = deriving
+```
+
+If we want to derive an instance of a type class with the type parameter that is higher kinded, we 
+can use the `derivingK` method, instead:
+
+```scala
+TODO
 ```
 
 

@@ -1,5 +1,6 @@
 package in.rcard.value
 
+import cats.{Eq, Functor}
 import io.estatico.newtype.macros.newtype
 import io.estatico.newtype.ops.toCoercibleIdOps
 
@@ -66,6 +67,8 @@ object ValuesClasses {
           code.matches("d-dddddd-dddddd"),
           code.coerce,
           s"The given code $code has not the right format")
+
+      implicit val eq: Eq[BarCodeWithCompanion] = deriving
     }
   }
 }
