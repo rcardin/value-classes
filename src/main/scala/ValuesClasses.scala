@@ -55,6 +55,9 @@ object ValuesClasses {
     def countryCode: Char = code.charAt(0)
   }
 
+  // Instantiation required
+  implicit val eqBarCode: Eq[BarCodeValueClass] = Eq.fromUniversalEquals[BarCodeValueClass]
+
   object NewType {
 
     @newtype case class BarCode(code: String)

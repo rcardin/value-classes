@@ -157,6 +157,20 @@ following use cases that need an extra memory allocation:
 * A value class is assigned to an array.
 * Doing runtime type tests, such as pattern matching.
 
+Unfortunately, a concrete case of the first rule concerns the use of a value class as a type 
+argument. So, every time we want to implement the type class pattern for a value class, we cannot 
+avoid its instantiation as a wrapper.
+
+In our specific case, imagine we have to implement the `cats.Eq` type class for the 
+`BarCodeValueClass`:
+
+```scala
+implicit val eqBarCode: Eq[BarCodeValueClass] = Eq.fromUniversalEquals[BarCodeValueClass]
+```
+
+The problem here that we love type classes, as functional developers, and there are many Scala 
+libraries, such as Cats, which are based at the root on the use of the type classes pattern. 
+
 Due to these limitations, the Scala community searched for a better solution. Ladies and gentlemen,
 please welcome the [NewType](https://github.com/estatico/scala-newtype) library.
 
@@ -232,13 +246,17 @@ type together with the `cats.Eq` type class:
 implicit val eq: Eq[BarCodeWithCompanion] = deriving
 ```
 
-If we want to derive an instance of a type class with the type parameter that is higher kinded, we 
-can use the `derivingK` method, instead:
+Whereas, if we want to derive an instance of a type class with the type parameter that is higher 
+kinded, we can use the `derivingK` method, instead.
 
-```scala
+Therefore, the fact that we can easily implement type classes for newtypes should dispel any doubt 
+whether using them to value classes.
+
+However, with the advent of Dotty (a.k.a. Scala 3) a new competitor came in town: The opaque types.
+
+## 5. Scala 3 Opaque Types
+
 TODO
-```
-
 
 
 
