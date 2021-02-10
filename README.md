@@ -254,9 +254,49 @@ whether using them to value classes.
 
 However, with the advent of Dotty (a.k.a. Scala 3) a new competitor came in town: The opaque types.
 
-## 5. Scala 3 Opaque Types
+## 5. Scala 3 Opaque Types Aliases
 
-TODO
+As many of us might already know, Dotty is the former name of the new major version of Scala. Dotty
+introduces many changes and enhancement to the language. One of this is _opaque type aliases_, which
+addresses the same issue as the previous value classes: Creating zero cost abstraction. 
+
+In effect, opaque types let us define a new `type` alias with an associated scope. Hence, Dotty 
+introduces a new reserved word for opaque type aliases, `opaque`:
+
+```scala
+object BarCodes {
+  opaque type BarCode = String
+}
+```
+
+To create a `BarCode` from a `String`, we must provide one or many smart constructors:
+
+```scala
+object BarCodes {
+  opaque type BarCode = String
+  
+  object BarCode {
+    def mkBarCode(code: String): Either[String, BarCode] = {
+      Either.cond(
+        code.matches("d-dddddd-dddddd"),
+        code,
+        s"The given code $code has not the right format"
+      )   
+    }
+  }
+}
+```
+
+Inside `BarCodes` scope, the `type` alias `BarCode` works as a `String`: We can assign a `String` to
+a variable of type `BarCode`, and we have access to the full API of `String` through an object of 
+type `BarCode`. So, there is no distinction between the two types.
+
+Whereas outside the `BarCodes` scope, the compiler treats a `String` and a `BarCode` as completely 
+different types.
+
+For example, defining a type alias `BarCode` for the type `String`, we have access to the whole API of the latter through a `BarCode`, 
+
+From this point of view, opaque types seem to be the idiomatic replacement to the NewType library.
 
 
 
