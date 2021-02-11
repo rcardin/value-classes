@@ -289,15 +289,69 @@ object BarCodes {
 
 Inside `BarCodes` scope, the `type` alias `BarCode` works as a `String`: We can assign a `String` to
 a variable of type `BarCode`, and we have access to the full API of `String` through an object of 
-type `BarCode`. So, there is no distinction between the two types.
+type `BarCode`. So, there is no distinction between the two types:
+
+```scala
+object BarCodes {
+  opaque type BarCode = String
+  val barCode: BarCode = "8-000137-001620"
+}
+```
 
 Whereas outside the `BarCodes` scope, the compiler treats a `String` and a `BarCode` as completely 
-different types.
+different types. In other words, the `BarCode` type is opaque with respect to the `String` type 
+outside the definition scope:
 
-For example, defining a type alias `BarCode` for the type `String`, we have access to the whole API of the latter through a `BarCode`, 
+```scala
+object BarCodes {
+  opaque
+  type BarCode = String
+}
+val anotherBarCode: BarCode = "8-000137-001620"
+```
 
-From this point of view, opaque types seem to be the idiomatic replacement to the NewType library.
+Hence, in the above example, the compiler diligently warns us that the two types are incompatible:
 
+```shell
+[error] 20 |  val anotherBarCode: BarCode = "8-000137-001620"
+[error]    |                      ^^^^^^^
+[error]    |                      Not found: type BarCode
+```
+
+If we want to add a method to an opaque type alias, we can use the extension method mechanism, which
+is another new feature of Dotty:
+
+```scala
+object BarCodes {
+  opaque type BarCode = String
+  
+  extension (b: BarCode) {
+    def country: Char = b.head
+  }
+}
+```
+
+As we can see, inside the definition scope, we have access to the whole API of the `String` through 
+a `BarCode` object. In our example, we retrieve the first character of the bar-code, representing 
+the country of production, just using the `String.head` method.
+
+Finally, we can say that the opaque type aliases seem to be the idiomatic replacement to the NewType 
+library in Dotty / Scala 3. Awesome!
+
+## 6. Conclusion
+
+Summing up, in this article, we have first introduced the reason why we need the so-called value 
+classes. The first attempt to give a solution uses directly `case classes`. 
+
+However, due to performance concerns, we introduced the idiomatic solution given by Scala. This 
+approach too had limitations due to unexpected memory allocations. 
+
+Then, we turned to additional libraries, and we found the NewType library. Through the use fo a mix
+of `type` and companion objects definition, the library solved the value classes problem in a very 
+bright way. 
+
+Finally, we looked at the future, introducing opaque type aliases from Dotty that seems to give us 
+the idiomatic language solution we were searching for.
 
 
 
