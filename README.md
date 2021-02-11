@@ -289,8 +289,7 @@ outside the definition scope:
 
 ```scala
 object BarCodes {
-  opaque
-  type BarCode = String
+  opaque type BarCode = String
 }
 val anotherBarCode: BarCode = "8-000137-001620"
 ```
