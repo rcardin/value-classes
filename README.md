@@ -99,7 +99,7 @@ sealed abstract class BarCodeWithSmartConstructor(code: String)
 object BarCodeWithSmartConstructor {
   def mkBarCode(code: String): Either[String, BarCodeWithSmartConstructor] =
     Either.cond(
-      code.matches("d-dddddd-dddddd"),
+      code.matches("\\d-\\d\\d\\d\\d\\d\\d-\\d\\d\\d\\d\\d\\d"),
       new BarCodeWithSmartConstructor(code) {},
       s"The given code $code has not the right format"
     )
@@ -197,7 +197,7 @@ object:
 object BarCodeWithCompanion {
   def mkBarCode(code: String): Either[String, BarCodeWithCompanion] =
     Either.cond(
-      code.matches("d-dddddd-dddddd"),
+      code.matches("\\d-\\d\\d\\d\\d\\d\\d-\\d\\d\\d\\d\\d\\d"),
       code.coerce,
       s"The given code $code has not the right format")
 }
@@ -263,7 +263,7 @@ object BarCodes {
   object BarCode {
     def mkBarCode(code: String): Either[String, BarCode] = {
       Either.cond(
-        code.matches("d-dddddd-dddddd"),
+        code.matches("\\d-\\d\\d\\d\\d\\d\\d-\\d\\d\\d\\d\\d\\d"),
         code,
         s"The given code $code has not the right format"
       )   

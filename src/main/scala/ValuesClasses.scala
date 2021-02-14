@@ -1,6 +1,6 @@
 package in.rcard.value
 
-import cats.{Eq, Functor}
+import cats.Eq
 import io.estatico.newtype.macros.newtype
 import io.estatico.newtype.ops.toCoercibleIdOps
 
@@ -33,7 +33,7 @@ object ValuesClasses {
   }
   object AnotherProductRepository extends AnotherProductRepository
 
-  val anotherDescription = Description("A fancy description")
+  val anotherDescription: Description = Description("A fancy description")
   // AnotherProductRepository.findByCode(anotherDescription) Won't compile!
 
   val aFakeBarCode: BarCode = BarCode("I am a bar-code ;)") // WTF!
@@ -42,7 +42,7 @@ object ValuesClasses {
   object BarCodeWithSmartConstructor {
     def mkBarCode(code: String): Either[String, BarCodeWithSmartConstructor] =
       Either.cond(
-        code.matches("d-dddddd-dddddd"),
+        code.matches("\\d-\\d\\d\\d\\d\\d\\d-\\d\\d\\d\\d\\d\\d"),
         new BarCodeWithSmartConstructor(code) {},
         s"The given code $code has not the right format"
       )
@@ -67,7 +67,7 @@ object ValuesClasses {
     object BarCodeWithCompanion {
       def mkBarCode(code: String): Either[String, BarCodeWithCompanion] =
         Either.cond(
-          code.matches("d-dddddd-dddddd"),
+          code.matches("\\d-\\d\\d\\d\\d\\d\\d-\\d\\d\\d\\d\\d\\d"),
           code.coerce,
           s"The given code $code has not the right format")
 
