@@ -1,4 +1,4 @@
-Whether there is something that functional programming teaches us is that we should always trust the signature of a function. Hence, when we use functional programming, we prefer to define _ad-hoc_ types to represent simple information such as an identifier, a description, or a currency. Ladies and gentlemen, please welcome the value classes.
+One of the main rules of functional developers is that we should always trust the signature of a function. Hence, when we use functional programming, we prefer to define _ad-hoc_ types to represent simple information such as an identifier, a description, or a currency. Ladies and gentlemen, please welcome the value classes.
 
 ## 1. The Problem
 
@@ -17,11 +17,9 @@ trait ProductRepository {
 }
 ```
 
-The problem is we cannot avoid using a description in the search by code or a code in the search by description:
+The problem is we cannot avoid using a description in the search by code, or a code in the search by description. As we are representing both information through a `String`, we can wrongly pass a description to the search by code, and viceversa: 
 
 ```scala
-import in.rcard.value.ValuesClasses.ProductRepository
-
 val aCode = "8-000137-001620"
 val aDescription = "Multivitamin and minerals"
 
@@ -29,7 +27,7 @@ ProductRepository.findByCode(aDescription)
 ProductRepository.findByDescription(aCode)
 ```
 
-The compiler cannot warn us of our errors because we represent both information, the `code` and the `description`, using simple `Strings`. This fact can lead to subtle bugs, which are very difficult to intercept also at runtime.
+The compiler cannot warn us of our errors because we represent both pieces of information, i.e. the `code` and the `description`, using simple `Strings`. This fact can lead to subtle bugs, which are very difficult to intercept also at runtime.
 
 ## 2. Using Straight Case Classes
 
@@ -51,7 +49,7 @@ trait AnotherProductRepository {
 }
 ```
 
-As we can see, it is not possible anymore to search a product by code, passing a description accidentally. Indeed, we can try to pass a `Description` instead of a `BarCode` instead:
+As we can see, it is not possible anymore to search a product by code, while accidentally passing a description. Indeed, we can try to pass a `Description` instead of a `BarCode` instead:
 
 ```scala
 val anotherDescription = Description("A fancy description")
@@ -71,17 +69,17 @@ As desired, the compiler diligently warns us that we are bad developers:
 However, we can still create a `BarCode` using a `String` representing a description:
 
 ```scala
-val aFakeBarCode: BarCode = BarCode("I am a bar-code ;)")
+val aFakeBarCode: BarCode = BarCode("I am a bar-code")
 ```
 
-To overcome this issue we must revamp the _smart constructor_ design pattern. Though the description of the pattern is behind the scope of this article, the smart constructor pattern hides to developers the main constructor of the class, and adds a factory method that performs any needed validation. In its final form, smart constructor pattern for the `BarCode` type is the following:
+To overcome this issue we must use the _smart constructor_ design pattern. Though the description of the pattern is behind the scope of this article, the smart constructor pattern hides to developers the main constructor of the class, and adds a factory method that performs any needed validation. In its final form, smart constructor pattern for the `BarCode` type is the following:
 
 ```scala
 sealed abstract class BarCodeWithSmartConstructor(code: String)
 object BarCodeWithSmartConstructor {
   def mkBarCode(code: String): Either[String, BarCodeWithSmartConstructor] =
     Either.cond(
-      code.matches("\\d-\\d\\d\\d\\d\\d\\d-\\d\\d\\d\\d\\d\\d"),
+      code.matches("\\d-\\d{6}-\\d{6}"),
       new BarCodeWithSmartConstructor(code) {},
       s"The given code $code has not the right format"
     )
@@ -95,9 +93,9 @@ Awesome! We reach our primary goal. Now, we have fewer problems to worry about..
 
 ## 3. An Idiomatic Approach
 
-The above approach resolves some problems, but it adds many others. In fact, since we are using a regular type to wrap `String`s, the compiler must instantiate a new instance of `BarCode` and `Description` more or less every time we use them. The over instantiation of objects can lead to a problem concerning performances and the amount of consumed memory.
+The above approach resolves some problems, but it adds many others. In fact, since we are using a `class` to wrap `String`s, the compiler must instantiate a new instance of `BarCode` and `Description` all the times we use them. The over instantiation of objects can lead to a problem concerning performances and the amount of consumed memory.
 
-Fortunately, Scala provides an idiomatic way to implement value classes: _Value classes_ ;). Idiomatic value classes avoid allocating runtime objects and the problems we just enumerated.
+Fortunately, Scala provides an idiomatic way to implement value classes: _Value classes_. Idiomatic value classes avoid allocating runtime objects, and the problems we just enumerated.
 
 A value class is a `class` (or a `case class`) that extends the type `AnyVal`, and declares only one single public `val` attribute in the constructor. Moreover, a value class can declare `def`:
 
@@ -109,7 +107,7 @@ case class BarCodeValueClass(val code: String) extends AnyVal {
 
 However, value classes have many constraints: They can define `def`, but not `val` other than the constructor's attribute, cannot be extended, and cannot extend anything but _universal traits_ (for the sake of completeness, a universal trait is a trait that extends the `Any` type, has only `def` as members, and does no initialization).
 
-The main characteristic of a value class is that the compiler treats it as a regular type at compile-time. Still, at runtime, its representation is equal to the basic type it declares in the constructor. Roughly speaking, the `BarCodeValueClass` type is transformed as a simple `String` at runtime.
+The main characteristic of a value class is that the compiler treats it as a `case class` at compile-time. Still, at runtime, its representation is equal to the basic type it declares in the constructor. Roughly speaking, the `BarCodeValueClass` type is transformed as a simple `String` at runtime.
 
 Hence, due to the lack of runtime overhead, value classes are a valuable tool used in the SDK to define extension methods for basic types such as `Int`, `Double`, `Char`, etc.
 
@@ -163,7 +161,7 @@ object:
 object BarCodeWithCompanion {
   def mkBarCode(code: String): Either[String, BarCodeWithCompanion] =
     Either.cond(
-      code.matches("\\d-\\d\\d\\d\\d\\d\\d-\\d\\d\\d\\d\\d\\d"),
+      code.matches("\\d-\\d{6}-\\d{6}"),
       code.coerce,
       s"The given code $code has not the right format")
 }
@@ -214,7 +212,7 @@ object BarCodes {
   object BarCode {
     def mkBarCode(code: String): Either[String, BarCode] = {
       Either.cond(
-        code.matches("\\d-\\d\\d\\d\\d\\d\\d-\\d\\d\\d\\d\\d\\d"),
+        code.matches("\\d-\\d{6}-\\d{6}"),
         code,
         s"The given code $code has not the right format"
       )   
@@ -260,7 +258,7 @@ library in Dotty / Scala 3. Awesome!
 
 ## 6. Conclusion
 
-Summing up, in this article, we have first introduced the reason why we need the so-called value classes. The first attempt to give a solution uses directly `case classes`. However, due to performance concerns, we introduced the idiomatic solution provided by Scala. This approach, too, had limitations due to random memory allocations.
+Summing up, in this article, we have first introduced the reason why we need the so-called value classes. The first attempt to give a solution uses `case class`es directly. However, due to performance concerns, we introduced the idiomatic solution provided by Scala. This approach, too, had limitations due to random memory allocations.
 
 Then, we turned to additional libraries, and we found the NewType library. Through the use of a mix of `type` and companion objects definition, the library solved the value classes problem in a very brilliant way.
 
