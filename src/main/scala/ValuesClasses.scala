@@ -70,6 +70,13 @@ object ValuesClasses {
   object NewType {
 
     @newtype case class BarCode(code: String)
+    @newtype case class Description(descr: String)
+
+    case class Product(code: BarCode, description: Description)
+
+    val iPhoneBarCode: BarCode = BarCode("1-234567-890123")
+    val iPhoneDescription: Description = Description("Apple iPhone 12 Pro")
+    val iPhone12Pro: Product = Product(iPhoneBarCode, iPhoneDescription)
 
     @newtype class BarCodeWithCompanion(code: String)
 

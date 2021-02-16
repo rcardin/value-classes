@@ -153,22 +153,39 @@ Due to these limitations, the Scala community searched for a better solution. La
 
 ## 4. The NewType Library
 
-The NewType library allows us to create new types without the overhead of extra runtime allocations, avoiding in this way all the pitfalls of using Scala values classes:
+The NewType library allows us to create new types without the overhead of extra runtime allocations, avoiding in this way all the pitfalls of using Scala values classes. To use it, we need to import the proper dependency in the `build.sbt` file:
+
+```sbt
+libraryDependencies += "io.estatico" %% "newtype" % "0.4.4"
+```
+
+It uses the experimental feature of Scala macros. So, it is necessary to enable it at compile-time, using the `-Ymacro-annotations`. In details, the library defines the `@newtype` annotation macro:
 
 ```scala
 import io.estatico.newtype.macros.newtype
 @newtype case class BarCode(code: String)
 ```
 
-It uses the experimental feature of Scala macros. So, it is necessary to enable it at compile-time, using the `-Ymacro-annotations`. In details, the library defines the `@newtype` annotation macro:
+The macro expansion generates a new `type` definition, and an associated companion object. Hence, we must define the new type inside an `object` or a `package object`. Moreover, the library expands the class marked with the `@newtype` annotation with its underlying value at runtime. So, a `@newtype` class can't extend any other type.
 
-```sbt
-libraryDependencies += "io.estatico" %% "newtype" % "0.4.4"
+Despite these limitations, the NewType library works like a charm and interacts smoothly with IDEs. Using two `@newtype`s, one representing a bar-code, and one representing a description, we can easily improve the definition of the initial `Product` class:
+
+```scala
+@newtype case class BarCode(code: String)
+@newtype case class Description(descr: String)
+    
+case class Product(code: BarCode, description: Description)
 ```
 
-Since the macro expansion generates a new `type` definition, we must define the new type inside an `object` or a `package object`. Moreover, the library expands the class marked with the `@newtype` annotation with its underlying value at runtime. So, a `@newtype` class can't extend any other type.
+Moreover, creating a new instance of a newtype it's as easy as creating an instance of a Scala regular type:
 
-Despite these limitations, the NewType library works like a charm and interacts smoothly with IDEs.
+```scala
+val iPhoneBarCode: BarCode = BarCode("1-234567-890123")
+val iPhoneDescription: Description = Description("Apple iPhone 12 Pro") 
+val iPhone12Pro: Product = Product(iPhoneBarCode, iPhoneDescription)
+```
+
+As we can see, the code looks like the original `Product` definition. However, we completely avoid the run instantiation of the wrapper classes. Such an improvement!
 
 What about smart constructors? If we choose to use a `case class`, the library will generate the `apply` method in the companion object. If we want to avoid access to the `apply` method, we can use a `class` instead and create our smart constructor in a dedicated companion
 object:
