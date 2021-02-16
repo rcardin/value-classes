@@ -131,6 +131,24 @@ implicit val eqBarCode: Eq[BarCodeValueClass] = Eq.fromUniversalEquals[BarCodeVa
 
 We love type classes, as functional developers, and there are many Scala libraries, such as Cats, which are based on the root of the type classes pattern.
 
+The second rule concerns the use of a value class inside an array. For example, imagine we want to create a bar-code basket:
+
+```scala
+val macBookBarCode = BarCodeValueClass("1-234567-890234")
+val iPhone12ProBarCode = BarCodeValueClass("0-987654-321098")
+val barCodes = Array[BarCodeValueClass](macBookBarCode, iPhone12ProBarCode)
+```
+
+As expected, the `barCodes` array will contain `BarCodeValueClass` instances, and not a `String` primitive.
+
+Finally, as the third rule states, we cannot use a value class with pattern matching avoiding a runtime instantiation. Hence, the following method, testing if a bar-code represents a product made in Italy, force a runtime instantiation:
+
+```scala
+def madeInItaly(barCode: BarCodeValueClass): Boolean = barCode match {
+  case BarCodeValueClass(code) => code.charAt(0) == '8'
+}
+```
+
 Due to these limitations, the Scala community searched for a better solution. Ladies and gentlemen, please welcome the [NewType](https://github.com/estatico/scala-newtype) library.
 
 ## 4. The NewType Library

@@ -58,6 +58,15 @@ object ValuesClasses {
   // Instantiation required
   implicit val eqBarCode: Eq[BarCodeValueClass] = Eq.fromUniversalEquals[BarCodeValueClass]
 
+  // Instantiation required
+  val macBookBarCode = BarCodeValueClass("1-234567-890234")
+  val iPhone12ProBarCode = BarCodeValueClass("0-987654-321098")
+  val barCodes = Array[BarCodeValueClass](macBookBarCode, iPhone12ProBarCode)
+
+  def madeInItaly(barCode: BarCodeValueClass): Boolean = barCode match {
+    case BarCodeValueClass(code) => code.charAt(0) == '8'
+  }
+
   object NewType {
 
     @newtype case class BarCode(code: String)
