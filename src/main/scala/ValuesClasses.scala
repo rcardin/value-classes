@@ -1,6 +1,7 @@
 package in.rcard.value
 
 import cats.Eq
+import io.estatico.newtype.Coercible
 import io.estatico.newtype.macros.newtype
 import io.estatico.newtype.ops.toCoercibleIdOps
 
@@ -88,6 +89,18 @@ object ValuesClasses {
           s"The given code $code has not the right format")
 
       implicit val eq: Eq[BarCodeWithCompanion] = deriving
+
+      val barCodeToString: Coercible[BarCode, String] = Coercible[BarCode, String]
+      val stringToBarCode: Coercible[String, BarCode] = Coercible[String, BarCode]
+
+      val code: String = barCodeToString(iPhoneBarCode)
+      val iPhone12BarCode: BarCode = stringToBarCode("1-234567-890123")
+
+      // Won't compile
+      // val doubleToBarCode: Coercible[Double, BarCode] = Coercible[Double, BarCode]
+
+      val anotherCode: String = iPhoneBarCode.coerce
+      val anotherIPhone12BarCode: BarCode = "1-234567-890123".coerce
     }
   }
 }

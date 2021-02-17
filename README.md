@@ -1,4 +1,4 @@
-One of the main rules of functional developers is that we should always trust the signature of a function. Hence, when we use functional programming, we prefer to define _ad-hoc_ types to represent simple information such as an identifier, a description, or a currency. Ladies and gentlemen, please welcome the value classes.
+One of the main rules of functional developers is that we should always trust a function's signature. Hence, when we use functional programming, we prefer to define _ad-hoc_ types to represent simple information such as an identifier, a description, or a currency. Ladies and gentlemen, please welcome the value classes.
 
 ## 1. The Problem
 
@@ -17,7 +17,7 @@ trait ProductRepository {
 }
 ```
 
-The problem is we cannot avoid using a description in the search by code, or a code in the search by description. As we are representing both information through a `String`, we can wrongly pass a description to the search by code, and viceversa: 
+We cannot avoid using a description in the search by code or a code in the search by description. As we are representing both information through a `String`, we can wrongly pass a description to the search by code, and vice versa: 
 
 ```scala
 val aCode = "8-000137-001620"
@@ -49,7 +49,7 @@ trait AnotherProductRepository {
 }
 ```
 
-As we can see, it is not possible anymore to search a product by code, while accidentally passing a description. Indeed, we can try to pass a `Description` instead of a `BarCode` instead:
+As we can see, it is not possible anymore to search a product by code while accidentally passing a description. Indeed, we can try to pass a `Description` instead of a `BarCode` instead:
 
 ```scala
 val anotherDescription = Description("A fancy description")
@@ -95,7 +95,7 @@ Awesome! We reach our primary goal. Now, we have fewer problems to worry about..
 
 The above approach resolves some problems, but it adds many others. In fact, since we are using a `class` to wrap `String`s, the compiler must instantiate a new instance of `BarCode` and `Description` all the times we use them. The over instantiation of objects can lead to a problem concerning performances and the amount of consumed memory.
 
-Fortunately, Scala provides an idiomatic way to implement value classes: _Value classes_. Idiomatic value classes avoid allocating runtime objects, and the problems we just enumerated.
+Fortunately, Scala provides an idiomatic way to implement value classes: _Value classes_. Idiomatic value classes avoid allocating runtime objects and the problems we just enumerated.
 
 A value class is a `class` (or a `case class`) that extends the type `AnyVal`, and declares only one single public `val` attribute in the constructor. Moreover, a value class can declare `def`:
 
@@ -129,7 +129,7 @@ In our specific case, imagine we have to implement the `cats.Eq` type class for 
 implicit val eqBarCode: Eq[BarCodeValueClass] = Eq.fromUniversalEquals[BarCodeValueClass]
 ```
 
-We love type classes, as functional developers, and there are many Scala libraries, such as Cats, which are based on the root of the type classes pattern.
+We love type classes, as functional developers, and many Scala libraries, such as Cats, are based on the root of the type classes pattern.
 
 The second rule concerns the use of a value class inside an array. For example, imagine we want to create a bar-code basket:
 
@@ -153,7 +153,7 @@ Due to these limitations, the Scala community searched for a better solution. La
 
 ## 4. The NewType Library
 
-The NewType library allows us to create new types without the overhead of extra runtime allocations, avoiding in this way all the pitfalls of using Scala values classes. To use it, we need to import the proper dependency in the `build.sbt` file:
+The NewType library allows us to create new types without the overhead of extra runtime allocations, avoiding the pitfalls of using Scala values classes. To use it, we need to import the proper dependency in the `build.sbt` file:
 
 ```sbt
 libraryDependencies += "io.estatico" %% "newtype" % "0.4.4"
@@ -166,9 +166,9 @@ import io.estatico.newtype.macros.newtype
 @newtype case class BarCode(code: String)
 ```
 
-The macro expansion generates a new `type` definition, and an associated companion object. Hence, we must define the new type inside an `object` or a `package object`. Moreover, the library expands the class marked with the `@newtype` annotation with its underlying value at runtime. So, a `@newtype` class can't extend any other type.
+The macro expansion generates a new `type` definition and an associated companion object. Hence, we must define the new type inside an `object` or a `package object`. Moreover, the library expands the class marked with the `@newtype` annotation with its underlying value at runtime. So, a `@newtype` class can't extend any other type.
 
-Despite these limitations, the NewType library works like a charm and interacts smoothly with IDEs. Using two `@newtype`s, one representing a bar-code, and one representing a description, we can easily improve the definition of the initial `Product` class:
+Despite these limitations, the NewType library works like a charm and interacts smoothly with IDEs. Using two `@newtype`s, one representing a bar-code and one representing a description, we can easily improve the definition of the initial `Product` class:
 
 ```scala
 @newtype case class BarCode(code: String)
@@ -185,7 +185,7 @@ val iPhoneDescription: Description = Description("Apple iPhone 12 Pro")
 val iPhone12Pro: Product = Product(iPhoneBarCode, iPhoneDescription)
 ```
 
-As we can see, the code looks like the original `Product` definition. However, we completely avoid the run instantiation of the wrapper classes. Such an improvement!
+As we can see, the code looks like the original `Product` definition. However, we altogether avoid the run instantiation of the wrapper classes. Such an improvement!
 
 What about smart constructors? If we choose to use a `case class`, the library will generate the `apply` method in the companion object. If we want to avoid access to the `apply` method, we can use a `class` instead and create our smart constructor in a dedicated companion
 object:
@@ -204,11 +204,44 @@ object BarCodeWithCompanion {
 
 ### 4.1. Type Coercion
 
-Wait. What is the `code.coerce` statement? Unfortunately, using a `class` instead of a `case class` removes the chance to use the `apply` method both for other developers and for us :( So, we have to use type coercion.
+Wait. What is the `code.coerce` statement? Unfortunately, using a `class` instead of a `case class` removes the chance to use the `apply` method for other developers and us. So, we have to use type coercion. So, we have to use type coercion.
 
 As we know, the Scala community considers type coercion a bad practice because it requires a cast (via the `asInstanceOf` method). The NewType library tries to make this operation safer using a type class approach.
 
-Hence, the compiler will let us use the `coerce` extension method if and only if an instance of the `Coercible[R, N]` type class exists in the scope for types `R` and `N`. However, [it's proven](https://github.com/estatico/scala-newtype/issues/64) that the scope resolution of the `Coercible` type class (a.k.a., the coercible trick) is an operation with a very high compile-time cost and should be avoided.
+Hence, the compiler will let us coerce between types if and only if an instance of the `Coercible[R, N]` type class exists in the scope for types `R` and `N`. Fortunately, the NewType library does the dirty work for us, creating the needed `Coercible` type class instances. Taking our example, the `Coercible` type classes let us cast from `BarCode` to `String`, and vice versa:
+
+```scala
+val barCodeToString: Coercible[BarCode, String] = Coercible[BarCode, String]
+val stringToBarCode: Coercible[String, BarCode] = Coercible[String, BarCode]
+
+val code: String = barCodeToString(iPhoneBarCode)
+val iPhone12BarCode: BarCode = stringToBarCode("1-234567-890123")
+```
+
+However, if we try to coerce a `Double` to a `BarCode`, the compiler will not find the needed type class:
+
+```scala
+val doubleToBarCode: Coercible[Double, BarCode] = Coercible[Double, BarCode]
+```
+
+In fact, the above code makes the compiler yelling:
+
+```sbt
+[error] could not find implicit value for parameter ev: io.estatico.newtype.Coercible[Double,in.rcard.value.ValuesClasses.NewType.BarCode]
+[error]       val doubleToBarCode: Coercible[Double, BarCode] = Coercible[Double, BarCode]
+[error]                                                                  ^
+```
+
+As the type classes pattern recommends, the NewType library defines also an extension method, `coerce`, for the types with a `Coercible` type class associated:
+
+```scala
+val anotherCode: String = iPhoneBarCode.coerce
+val anotherIPhone12BarCode: BarCode = "1-234567-890123".coerce
+```
+
+However, [it's proven](https://github.com/estatico/scala-newtype/issues/64) that the scope resolution of the `Coercible` type class (a.k.a., the coercible trick) is an operation with a very high compile-time cost and should be avoided. Moreover, as the [library documentation](https://github.com/estatico/scala-newtype#coercible) says
+
+> You generally shouldn't be creating instances of Coercible yourself. This library is designed to create the instances needed for you which are safe. If you manually create instances, you may be permitting unsafe operations which will lead to runtime casting errors.
 
 ### 4.2. Automatically Deriving Type Classes
 
