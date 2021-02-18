@@ -8,7 +8,7 @@ First, let's define an example to work with. Imagine we have an e-commerce busin
 case class Product(code: String, description: String)
 ```
 
-So, every product is represented by a `code`, some alphanumerics bar-code, and a `description`. So far, so good. Now, we want to implement a repository that retrieves products from a persistent store, and we want to allow our users to search by `code` and by `description`:
+So, every product is represented by a `code` (which can mean some barcode), and a `description`. So far, so good. Now, we want to implement a repository that retrieves products from a persistent store, and we want to allow our users to search by `code` and by `description`:
 
 ```scala
 trait ProductRepository {
@@ -17,7 +17,7 @@ trait ProductRepository {
 }
 ```
 
-We cannot avoid using a description in the search by code or a code in the search by description. As we are representing both information through a `String`, we can wrongly pass a description to the search by code, and vice versa: 
+We cannot avoid using a description in the search by code or a code in the search by description. As we are representing both pieces of information through a `String`, we can wrongly pass a description to the search by code, and vice versa: 
 
 ```scala
 val aCode = "8-000137-001620"
@@ -27,7 +27,7 @@ ProductRepository.findByCode(aDescription)
 ProductRepository.findByDescription(aCode)
 ```
 
-The compiler cannot warn us of our errors because we represent both pieces of information, i.e. the `code` and the `description`, using simple `Strings`. This fact can lead to subtle bugs, which are very difficult to intercept also at runtime.
+The compiler cannot warn us of our errors because we represent both pieces of information, i.e. the `code` and the `description`, using simple `Strings`. This fact can lead to subtle bugs, which are very difficult to intercept at runtime as well.
 
 ## 2. Using Straight Case Classes
 
@@ -72,7 +72,7 @@ However, we can still create a `BarCode` using a `String` representing a descrip
 val aFakeBarCode: BarCode = BarCode("I am a bar-code")
 ```
 
-To overcome this issue we must use the _smart constructor_ design pattern. Though the description of the pattern is behind the scope of this article, the smart constructor pattern hides to developers the main constructor of the class, and adds a factory method that performs any needed validation. In its final form, smart constructor pattern for the `BarCode` type is the following:
+To overcome this issue we must use the _smart constructor_ design pattern. Though the description of the pattern is beyond the scope of this article, the smart constructor pattern hides to developers the main constructor of the class, and adds a factory method that performs any needed validation. In its final form, smart constructor pattern for the `BarCode` type is the following:
 
 ```scala
 sealed abstract class BarCodeWithSmartConstructor(code: String)
@@ -93,7 +93,7 @@ Awesome! We reach our primary goal. Now, we have fewer problems to worry about..
 
 ## 3. An Idiomatic Approach
 
-The above approach resolves some problems, but it adds many others. In fact, since we are using a `class` to wrap `String`s, the compiler must instantiate a new `BarCode` and `Description` all the times. The over instantiation of objects can lead to a problem concerning performances and the amount of consumed memory.
+The above approach resolves some problems, but it adds many others. In fact, since we are using a `class` to wrap `String`s, the compiler must instantiate a new `BarCode` and `Description` every single time. The over instantiation of objects can lead to a problem concerning performance and the amount of consumed memory.
 
 Fortunately, Scala provides an idiomatic way to implement value classes. Idiomatic value classes avoid allocating runtime objects and the problems we just enumerated.
 
@@ -121,15 +121,14 @@ The Scala [documentation](https://docs.scala-lang.org/overviews/core/value-class
 * A value class is assigned to an array.
 * Doing runtime type tests, such as pattern matching.
 
-Unfortunately, the first rule's concrete case also concerns using a value class as a type argument. Every time we want to implement the type classes pattern for a value class, we cannot avoid its instantiation.
-
-In our specific case, imagine we have to implement the `cats.Eq` type class for the `BarCodeValueClass`:
+Unfortunately, the first rule's concrete case also concerns using a value class as a type argument. Hence, also the use of a simple generic method `show`, creating a printable representation of an object, can cause an undesired instantiation:
 
 ```scala
-implicit val eqBarCode: Eq[BarCodeValueClass] = Eq.fromUniversalEquals[BarCodeValueClass]
+def show[T](obj: T): String = obj.toString
+println(show(BarCodeValueClass("1-234567-890234")))
 ```
 
-We love type classes, as functional developers, and many Scala libraries, such as Cats, are based on the root of the type classes pattern. So, this is a big problem.
+Moreover, for the same reason, every time we want to implement the type classes pattern for a value class, we cannot avoid its instantiation. We love type classes, as functional developers, and many Scala libraries, such as Cats, are based on the root of the type classes pattern. So, this is a big problem.
 
 The second rule concerns the use of a value class inside an array. For example, imagine we want to create a bar-code basket:
 
@@ -139,9 +138,9 @@ val iPhone12ProBarCode = BarCodeValueClass("0-987654-321098")
 val barCodes = Array[BarCodeValueClass](macBookBarCode, iPhone12ProBarCode)
 ```
 
-As expected, the `barCodes` array will contain `BarCodeValueClass` instances, and not a `String` primitive. Again, additional instantiations are neeeded.
+As expected, the `barCodes` array will contain `BarCodeValueClass` instances, and not a `String` primitive. Again, additional instantiations are needed. In detail, the problem is not due to Scala, but to how the JVM treats arrays of objects and arrays of primitive types.
 
-Finally, as the third rule states, we cannot use a value class with pattern matching avoiding a runtime instantiation. Hence, the following method, testing if a bar-code represents a product made in Italy, forces a runtime instantiation:
+Finally, as the third rule states, we cannot use a value class with pattern matching avoiding a runtime instantiation. Hence, the following method, testing if a bar-code represents a product made in Italy, forces a runtime instantiation of the `barCode` object as a `BarCodeValueClass`:
 
 ```scala
 def madeInItaly(barCode: BarCodeValueClass): Boolean = barCode match {

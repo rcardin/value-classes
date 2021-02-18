@@ -59,6 +59,9 @@ object ValuesClasses {
   // Instantiation required
   implicit val eqBarCode: Eq[BarCodeValueClass] = Eq.fromUniversalEquals[BarCodeValueClass]
 
+  def show[T](obj: T): String = obj.toString
+  println(show(BarCodeValueClass("1-234567-890234")))
+
   // Instantiation required
   val macBookBarCode = BarCodeValueClass("1-234567-890234")
   val iPhone12ProBarCode = BarCodeValueClass("0-987654-321098")
