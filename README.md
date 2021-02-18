@@ -49,7 +49,7 @@ trait AnotherProductRepository {
 }
 ```
 
-As we can see, it is not possible anymore to search a product by code while accidentally passing a description. Indeed, we can try to pass a `Description` instead of a `BarCode` instead:
+As we can see, it is not possible anymore to search a product by code while accidentally passing a description. Indeed, we can try to pass a `Description` instead of a `BarCode`:
 
 ```scala
 val anotherDescription = Description("A fancy description")
@@ -93,11 +93,11 @@ Awesome! We reach our primary goal. Now, we have fewer problems to worry about..
 
 ## 3. An Idiomatic Approach
 
-The above approach resolves some problems, but it adds many others. In fact, since we are using a `class` to wrap `String`s, the compiler must instantiate a new instance of `BarCode` and `Description` all the times we use them. The over instantiation of objects can lead to a problem concerning performances and the amount of consumed memory.
+The above approach resolves some problems, but it adds many others. In fact, since we are using a `class` to wrap `String`s, the compiler must instantiate a new `BarCode` and `Description` all the times. The over instantiation of objects can lead to a problem concerning performances and the amount of consumed memory.
 
-Fortunately, Scala provides an idiomatic way to implement value classes: _Value classes_. Idiomatic value classes avoid allocating runtime objects and the problems we just enumerated.
+Fortunately, Scala provides an idiomatic way to implement value classes. Idiomatic value classes avoid allocating runtime objects and the problems we just enumerated.
 
-A value class is a `class` (or a `case class`) that extends the type `AnyVal`, and declares only one single public `val` attribute in the constructor. Moreover, a value class can declare `def`:
+A idiomatic value class is a `class` (or a `case class`) that extends the type `AnyVal`, and declares only one single public `val` attribute in the constructor. Moreover, a value class can declare `def`:
 
 ```scala
 case class BarCodeValueClass(val code: String) extends AnyVal {
@@ -107,13 +107,13 @@ case class BarCodeValueClass(val code: String) extends AnyVal {
 
 However, value classes have many constraints: They can define `def`, but not `val` other than the constructor's attribute, cannot be extended, and cannot extend anything but _universal traits_ (for the sake of completeness, a universal trait is a trait that extends the `Any` type, has only `def` as members, and does no initialization).
 
-The main characteristic of a value class is that the compiler treats it as a `case class` at compile-time. Still, at runtime, its representation is equal to the basic type it declares in the constructor. Roughly speaking, the `BarCodeValueClass` type is transformed as a simple `String` at runtime.
+The main characteristic of a value class is that the compiler treats it as a `case class` at compile-time. Still, at runtime, its representation is equal to the type declared in the constructor. Roughly speaking, the `BarCodeValueClass` type is transformed as a simple `String` at runtime.
 
 Hence, due to the lack of runtime overhead, value classes are a valuable tool used in the SDK to define extension methods for basic types such as `Int`, `Double`, `Char`, etc.
 
 ### 3.1. The Problem With the Idiomatic Approach
 
-We must remember that the JVM does not support value classes directly. So, there are cases in which the runtime environment must perform an extra allocation of memory for the wrapper type.
+We must remember that the JVM doesn't support value classes directly. So, there are cases in which the runtime environment must perform an extra allocation of memory for the wrapper type.
 
 The Scala [documentation](https://docs.scala-lang.org/overviews/core/value-classes.html) reports the following use cases that need an extra memory allocation:
 
@@ -121,7 +121,7 @@ The Scala [documentation](https://docs.scala-lang.org/overviews/core/value-class
 * A value class is assigned to an array.
 * Doing runtime type tests, such as pattern matching.
 
-Unfortunately, the first rule's concrete case also concerns using a value class as a type argument. Every time we want to implement the type classes pattern for a value class, we cannot avoid its instantiation as a wrapper.
+Unfortunately, the first rule's concrete case also concerns using a value class as a type argument. Every time we want to implement the type classes pattern for a value class, we cannot avoid its instantiation.
 
 In our specific case, imagine we have to implement the `cats.Eq` type class for the `BarCodeValueClass`:
 
@@ -129,7 +129,7 @@ In our specific case, imagine we have to implement the `cats.Eq` type class for 
 implicit val eqBarCode: Eq[BarCodeValueClass] = Eq.fromUniversalEquals[BarCodeValueClass]
 ```
 
-We love type classes, as functional developers, and many Scala libraries, such as Cats, are based on the root of the type classes pattern.
+We love type classes, as functional developers, and many Scala libraries, such as Cats, are based on the root of the type classes pattern. So, this is a big problem.
 
 The second rule concerns the use of a value class inside an array. For example, imagine we want to create a bar-code basket:
 
@@ -139,9 +139,9 @@ val iPhone12ProBarCode = BarCodeValueClass("0-987654-321098")
 val barCodes = Array[BarCodeValueClass](macBookBarCode, iPhone12ProBarCode)
 ```
 
-As expected, the `barCodes` array will contain `BarCodeValueClass` instances, and not a `String` primitive.
+As expected, the `barCodes` array will contain `BarCodeValueClass` instances, and not a `String` primitive. Again, additional instantiations are neeeded.
 
-Finally, as the third rule states, we cannot use a value class with pattern matching avoiding a runtime instantiation. Hence, the following method, testing if a bar-code represents a product made in Italy, force a runtime instantiation:
+Finally, as the third rule states, we cannot use a value class with pattern matching avoiding a runtime instantiation. Hence, the following method, testing if a bar-code represents a product made in Italy, forces a runtime instantiation:
 
 ```scala
 def madeInItaly(barCode: BarCodeValueClass): Boolean = barCode match {
@@ -153,7 +153,7 @@ Due to these limitations, the Scala community searched for a better solution. La
 
 ## 4. The NewType Library
 
-The NewType library allows us to create new types without the overhead of extra runtime allocations, avoiding the pitfalls of using Scala values classes. To use it, we need to import the proper dependency in the `build.sbt` file:
+The NewType library allows us to create new types without the overhead of extra runtime allocations, avoiding the pitfalls of Scala values classes. To use it, we need to import the proper dependency in the `build.sbt` file:
 
 ```sbt
 libraryDependencies += "io.estatico" %% "newtype" % "0.4.4"
@@ -168,7 +168,9 @@ import io.estatico.newtype.macros.newtype
 
 The macro expansion generates a new `type` definition and an associated companion object. Hence, we must define the new type inside an `object` or a `package object`. Moreover, the library expands the class marked with the `@newtype` annotation with its underlying value at runtime. So, a `@newtype` class can't extend any other type.
 
-Despite these limitations, the NewType library works like a charm and interacts smoothly with IDEs. Using two `@newtype`s, one representing a bar-code and one representing a description, we can easily improve the definition of the initial `Product` class:
+Despite these limitations, the NewType library works like a charm and interacts smoothly with IDEs. 
+
+Using two `@newtype`s, one representing a bar-code and one representing a description, we can easily improve the definition of the initial `Product` class:
 
 ```scala
 @newtype case class BarCode(code: String)
@@ -185,7 +187,7 @@ val iPhoneDescription: Description = Description("Apple iPhone 12 Pro")
 val iPhone12Pro: Product = Product(iPhoneBarCode, iPhoneDescription)
 ```
 
-As we can see, the code looks like the original `Product` definition. However, we altogether avoid the run instantiation of the wrapper classes. Such an improvement!
+As we can see, the code looks like the original `Product` definition. However, we altogether avoid the runtime instantiation of the wrapper classes. Such an improvement!
 
 What about smart constructors? If we choose to use a `case class`, the library will generate the `apply` method in the companion object. If we want to avoid access to the `apply` method, we can use a `class` instead and create our smart constructor in a dedicated companion
 object:
@@ -204,11 +206,11 @@ object BarCodeWithCompanion {
 
 ### 4.1. Type Coercion
 
-Wait. What is the `code.coerce` statement? Unfortunately, using a `class` instead of a `case class` removes the chance to use the `apply` method for other developers and us. So, we have to use type coercion. So, we have to use type coercion.
+Wait. What is the `code.coerce` statement? Unfortunately, using a `class` instead of a `case class` removes the chance to use the `apply` method for other developers and us. So, we have to use type coercion.
 
 As we know, the Scala community considers type coercion a bad practice because it requires a cast (via the `asInstanceOf` method). The NewType library tries to make this operation safer using a type class approach.
 
-Hence, the compiler will let us coerce between types if and only if an instance of the `Coercible[R, N]` type class exists in the scope for types `R` and `N`. Fortunately, the NewType library does the dirty work for us, creating the needed `Coercible` type class instances. Taking our example, the `Coercible` type classes let us cast from `BarCode` to `String`, and vice versa:
+Hence, the compiler will let us coerce between types if and only if an instance of the `Coercible[R, N]` type class exists in the scope for types `R` and `N`. Fortunately, the NewType library does the dirty work for us, creating the needed `Coercible` type class instances. Taking our example, the generated `Coercible` type classes let us cast from `BarCode` to `String`, and vice versa:
 
 ```scala
 val barCodeToString: Coercible[BarCode, String] = Coercible[BarCode, String]
